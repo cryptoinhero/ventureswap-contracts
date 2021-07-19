@@ -1,0 +1,10 @@
+{
+  "name": "ventureswap-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@openzeppelin/contracts": "3.1.0",
+    "dotenv": "^10.0.0",
+    "truffle-hdwallet-provider": "^1.0.17"
+  }
+}
