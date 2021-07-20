@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "./libs/IStrategyArt.sol";
+import "./libs/IStrategyVkey.sol";
 import "./libs/IUniPair.sol";
 import "./libs/IUniRouter02.sol";
 
@@ -22,7 +22,7 @@ abstract contract BaseStrategy is Ownable, ReentrancyGuard, Pausable {
     
     address public uniRouterAddress;
     address public constant usdcAddress = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
-    address public constant artAddress = 0x804F45206b125440d591DA319976C42220E5a118;
+    address public constant vkeyAddress = 0x804F45206b125440d591DA319976C42220E5a118;
     address public constant rewardAddress = 0x3Bdb904fe89B4c35020870E4B7E84a7f9f7AdAF8;
     address public constant withdrawFeeAddress = 0xE692F4baC9e344D97e7c04c5142f04D264CC7074;
     address public constant feeAddress = 0xf8A0B66036EC5e5873a97aB0a5C70CfA8a21121B;
@@ -48,7 +48,7 @@ abstract contract BaseStrategy is Ownable, ReentrancyGuard, Pausable {
 
     address[] public earnedToWmaticPath;
     address[] public earnedToUsdcPath;
-    address[] public earnedToArtPath;
+    address[] public earnedToVkeyPath;
     address[] public earnedToToken0Path;
     address[] public earnedToToken1Path;
     address[] public token0ToEarnedPath;
@@ -178,7 +178,7 @@ abstract contract BaseStrategy is Ownable, ReentrancyGuard, Pausable {
             
             uint256 usdcAfter = IERC20(usdcAddress).balanceOf(address(this)).sub(usdcBefore);
             
-            IStrategyArt(rewardAddress).depositReward(usdcAfter);
+            IStrategyVkey(rewardAddress).depositReward(usdcAfter);
             
             _earnedAmt = _earnedAmt.sub(fee);
         }
@@ -192,7 +192,7 @@ abstract contract BaseStrategy is Ownable, ReentrancyGuard, Pausable {
     
             _safeSwap(
                 buyBackAmt,
-                earnedToArtPath,
+                earnedToVkeyPath,
                 buyBackAddress
             );
 

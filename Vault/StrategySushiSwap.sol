@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "./libs/ISushiStake.sol";
-import "./libs/IStrategyArt.sol";
+import "./libs/IStrategyVkey.sol";
 import "./libs/IUniPair.sol";
 import "./libs/IUniRouter02.sol";
 import "./libs/IWETH.sol";
@@ -26,7 +26,7 @@ contract StrategySushiSwap is Ownable, ReentrancyGuard, Pausable {
     
     address public uniRouterAddress = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506;
     address public constant usdcAddress = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
-    address public constant artAddress = 0x804F45206b125440d591DA319976C42220E5a118;
+    address public constant vkeyAddress = 0x804F45206b125440d591DA319976C42220E5a118;
     address public constant rewardAddress = 0x520C340d6C9D7Efc7cF4806b6cf0Ab9859C62dF5;
     address public constant wmaticAddress = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
     address public constant vaultAddress = 0x36eB45aBc8Cc719C6E594e582622A229ca98439E;
@@ -54,9 +54,9 @@ contract StrategySushiSwap is Ownable, ReentrancyGuard, Pausable {
 
     address[] public earnedToWmaticPath;
     address[] public earnedToUsdcPath;
-    address[] public earnedToArtPath;
+    address[] public earnedToVkeyPath;
     address[] public wmaticToUsdcPath;
-    address[] public wmaticToArtPath;
+    address[] public wmaticToVkeyPath;
     address[] public earnedToToken0Path;
     address[] public earnedToToken1Path;
     address[] public wmaticToToken0Path;
@@ -71,9 +71,9 @@ contract StrategySushiSwap is Ownable, ReentrancyGuard, Pausable {
         address _earnedAddress,
         address[] memory _earnedToWmaticPath,
         address[] memory _earnedToUsdcPath,
-        address[] memory _earnedToArtPath,
+        address[] memory _earnedToVkeyPath,
         address[] memory _wmaticToUsdcPath,
-        address[] memory _wmaticToArtPath,
+        address[] memory _wmaticToVkeyPath,
         address[] memory _earnedToToken0Path,
         address[] memory _earnedToToken1Path,
         address[] memory _wmaticToToken0Path,
@@ -93,9 +93,9 @@ contract StrategySushiSwap is Ownable, ReentrancyGuard, Pausable {
 
         earnedToWmaticPath = _earnedToWmaticPath;
         earnedToUsdcPath = _earnedToUsdcPath;
-        earnedToArtPath = _earnedToArtPath;
+        earnedToVkeyPath = _earnedToVkeyPath;
         wmaticToUsdcPath = _wmaticToUsdcPath;
-        wmaticToArtPath = _wmaticToArtPath;
+        wmaticToVkeyPath = _wmaticToVkeyPath;
         earnedToToken0Path = _earnedToToken0Path;
         earnedToToken1Path = _earnedToToken1Path;
         wmaticToToken0Path = _wmaticToToken0Path;
@@ -306,7 +306,7 @@ contract StrategySushiSwap is Ownable, ReentrancyGuard, Pausable {
             
             uint256 usdcAfter = IERC20(usdcAddress).balanceOf(address(this)).sub(usdcBefore);
             
-            IStrategyArt(rewardAddress).depositReward(usdcAfter);
+            IStrategyVkey(rewardAddress).depositReward(usdcAfter);
             
             _earnedAmt = _earnedAmt.sub(fee);
         }
@@ -320,7 +320,7 @@ contract StrategySushiSwap is Ownable, ReentrancyGuard, Pausable {
     
             _safeSwap(
                 buyBackAmt,
-                _earnedAddress == wmaticAddress ? wmaticToArtPath : earnedToArtPath,
+                _earnedAddress == wmaticAddress ? wmaticToVkeyPath : earnedToVkeyPath,
                 buyBackAddress
             );
 

@@ -17,7 +17,7 @@ contract StrategyMasterchefDouble is BaseStrategyLP {
     address public constant wmaticAddress = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
 
     address[] public wmaticToUsdcPath;
-    address[] public wmaticToArtPath;
+    address[] public wmaticToVkeyPath;
     address[] public wmaticToToken0Path;
     address[] public wmaticToToken1Path;
 
@@ -29,9 +29,9 @@ contract StrategyMasterchefDouble is BaseStrategyLP {
         address _earnedAddress,
         address[] memory _earnedToWmaticPath,
         address[] memory _earnedToUsdcPath,
-        address[] memory _earnedToArtPath,
+        address[] memory _earnedToVkeyPath,
         address[] memory _wmaticToUsdcPath,
-        address[] memory _wmaticToArtPath,
+        address[] memory _wmaticToVkeyPath,
         address[] memory _earnedToToken0Path,
         address[] memory _earnedToToken1Path,
         address[] memory _wmaticToToken0Path,
@@ -53,9 +53,9 @@ contract StrategyMasterchefDouble is BaseStrategyLP {
 
         earnedToWmaticPath = _earnedToWmaticPath;
         earnedToUsdcPath = _earnedToUsdcPath;
-        earnedToArtPath = _earnedToArtPath;
+        earnedToVkeyPath = _earnedToVkeyPath;
         wmaticToUsdcPath = _wmaticToUsdcPath;
-        wmaticToArtPath = _wmaticToArtPath;
+        wmaticToVkeyPath = _wmaticToVkeyPath;
         earnedToToken0Path = _earnedToToken0Path;
         earnedToToken1Path = _earnedToToken1Path;
         wmaticToToken0Path = _wmaticToToken0Path;
@@ -191,7 +191,7 @@ contract StrategyMasterchefDouble is BaseStrategyLP {
             
             uint256 usdcAfter = IERC20(usdcAddress).balanceOf(address(this)).sub(usdcBefore);
             
-            IStrategyArt(rewardAddress).depositReward(usdcAfter);
+            IStrategyVkey(rewardAddress).depositReward(usdcAfter);
             
             _earnedAmt = _earnedAmt.sub(fee);
         }
@@ -205,7 +205,7 @@ contract StrategyMasterchefDouble is BaseStrategyLP {
     
             _safeSwap(
                 buyBackAmt,
-                _earnedAddress == wmaticAddress ? wmaticToArtPath : earnedToArtPath,
+                _earnedAddress == wmaticAddress ? wmaticToVkeyPath : earnedToVkeyPath,
                 buyBackAddress
             );
 

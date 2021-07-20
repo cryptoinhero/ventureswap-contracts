@@ -19,7 +19,7 @@ contract StrategyDfyn is BaseStrategyLPSingle {
         address _earnedAddress,
         address[] memory _earnedToWmaticPath,
         address[] memory _earnedToUsdcPath,
-        address[] memory _earnedToArtPath,
+        address[] memory _earnedToVkeyPath,
         address[] memory _earnedToToken0Path,
         address[] memory _earnedToToken1Path,
         address[] memory _token0ToEarnedPath,
@@ -38,7 +38,7 @@ contract StrategyDfyn is BaseStrategyLPSingle {
 
         earnedToWmaticPath = _earnedToWmaticPath;
         earnedToUsdcPath = _earnedToUsdcPath;
-        earnedToArtPath = _earnedToArtPath;
+        earnedToVkeyPath = _earnedToVkeyPath;
         earnedToToken0Path = _earnedToToken0Path;
         earnedToToken1Path = _earnedToToken1Path;
         token0ToEarnedPath = _token0ToEarnedPath;

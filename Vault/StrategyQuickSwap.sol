@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "./libs/IStakingRewards.sol";
-import "./libs/IStrategyArt.sol";
+import "./libs/IStrategyVkey.sol";
 import "./libs/IUniPair.sol";
 import "./libs/IUniRouter02.sol";
 
@@ -24,7 +24,7 @@ contract StrategyQuickSwap is Ownable, ReentrancyGuard, Pausable {
     
     address public uniRouterAddress = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
     address public constant usdcAddress = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
-    address public constant artAddress = 0x804F45206b125440d591DA319976C42220E5a118;
+    address public constant vkeyAddress = 0x804F45206b125440d591DA319976C42220E5a118;
     address public constant rewardAddress = 0x917FB15E8aAA12264DCBdC15AFef7cD3cE76BA39;
     address public constant vaultAddress = 0x36eB45aBc8Cc719C6E594e582622A229ca98439E;
     address public constant feeAddress = 0xf8A0B66036EC5e5873a97aB0a5C70CfA8a21121B;
@@ -51,7 +51,7 @@ contract StrategyQuickSwap is Ownable, ReentrancyGuard, Pausable {
 
     address[] public earnedToWmaticPath;
     address[] public earnedToUsdcPath;
-    address[] public earnedToArtPath;
+    address[] public earnedToVkeyPath;
     address[] public earnedToToken0Path;
     address[] public earnedToToken1Path;
     address[] public token0ToEarnedPath;
@@ -64,7 +64,7 @@ contract StrategyQuickSwap is Ownable, ReentrancyGuard, Pausable {
         address _earnedAddress,
         address[] memory _earnedToWmaticPath,
         address[] memory _earnedToUsdcPath,
-        address[] memory _earnedToArtPath,
+        address[] memory _earnedToVkeyPath,
         address[] memory _earnedToToken0Path,
         address[] memory _earnedToToken1Path,
         address[] memory _token0ToEarnedPath,
@@ -82,7 +82,7 @@ contract StrategyQuickSwap is Ownable, ReentrancyGuard, Pausable {
 
         earnedToWmaticPath = _earnedToWmaticPath;
         earnedToUsdcPath = _earnedToUsdcPath;
-        earnedToArtPath = _earnedToArtPath;
+        earnedToVkeyPath = _earnedToVkeyPath;
         earnedToToken0Path = _earnedToToken0Path;
         earnedToToken1Path = _earnedToToken1Path;
         token0ToEarnedPath = _token0ToEarnedPath;
@@ -259,7 +259,7 @@ contract StrategyQuickSwap is Ownable, ReentrancyGuard, Pausable {
             
             uint256 usdcAfter = IERC20(usdcAddress).balanceOf(address(this)).sub(usdcBefore);
             
-            IStrategyArt(rewardAddress).depositReward(usdcAfter);
+            IStrategyVkey(rewardAddress).depositReward(usdcAfter);
             
             _earnedAmt = _earnedAmt.sub(fee);
         }
@@ -273,7 +273,7 @@ contract StrategyQuickSwap is Ownable, ReentrancyGuard, Pausable {
     
             _safeSwap(
                 buyBackAmt,
-                earnedToArtPath,
+                earnedToVkeyPath,
                 buyBackAddress
             );
 

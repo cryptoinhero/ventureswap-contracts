@@ -2,6 +2,6 @@
 
 pragma solidity 0.6.12;
 
-interface IStrategyArt {
+interface IStrategyVkey {
     function depositReward(uint256 _depositAmt) external returns (bool);
 }

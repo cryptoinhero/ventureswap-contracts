@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract StrategyArt is Ownable, ReentrancyGuard, Pausable {
+contract StrategyVkey is Ownable, ReentrancyGuard, Pausable {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "./libs/IDragonLair.sol";
 import "./libs/IStakingRewards.sol";
-import "./libs/IStrategyArt.sol";
+import "./libs/IStrategyVkey.sol";
 import "./libs/IUniPair.sol";
 import "./libs/IUniRouter02.sol";
 
@@ -25,7 +25,7 @@ contract StrategyVaultBurn is Ownable, ReentrancyGuard, Pausable {
     address public constant dQuickAddress = 0xf28164A485B0B2C90639E47b0f377b4a438a16B1;
     address public constant quickAddress = 0x831753DD7087CaC61aB5644b308642cc1c33Dc13;
     address public constant wmaticAddress = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
-    address public constant artAddress = 0x804F45206b125440d591DA319976C42220E5a118;
+    address public constant vkeyAddress = 0x804F45206b125440d591DA319976C42220E5a118;
     address public vaultChefAddress;
     address public govAddress;
 
@@ -38,7 +38,7 @@ contract StrategyVaultBurn is Ownable, ReentrancyGuard, Pausable {
     uint256 public slippageFactor = 950; // 5% default slippage tolerance
     uint256 public constant slippageFactorUL = 995;
 
-    address[] public quickToArtPath;
+    address[] public quickToVkeyPath;
 
     constructor(
         address _vaultChefAddress,
@@ -49,7 +49,7 @@ contract StrategyVaultBurn is Ownable, ReentrancyGuard, Pausable {
         vaultChefAddress = _vaultChefAddress;
         wantAddress = _wantAddress;
         quickSwapAddress = _quickSwapAddress;
-        quickToArtPath = [quickAddress, wmaticAddress, artAddress];
+        quickToVkeyPath = [quickAddress, wmaticAddress, vkeyAddress];
 
         transferOwnership(vaultChefAddress);
         
@@ -150,7 +150,7 @@ contract StrategyVaultBurn is Ownable, ReentrancyGuard, Pausable {
             if (earnedAmt > 0) {
                 _safeSwap(
                     earnedAmt,
-                    quickToArtPath,
+                    quickToVkeyPath,
                     buyBackAddress
                 );
             }
