@@ -7,13 +7,13 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "./ArtToken.sol";
+import "./VkeyToken.sol";
 import "./libs/IReferral.sol";
 
-// MasterChef is the master of Art. He can make Art and he is a fair guy.
+// MasterChef is the master of Vkey. He can make Vkey and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
-// will be transferred to a governance smart contract once Art is sufficiently
+// will be transferred to a governance smart contract once Vkey is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
@@ -26,13 +26,13 @@ contract MasterChef is Ownable, ReentrancyGuard {
         uint256 amount;         // How many LP tokens the user has provided.
         uint256 rewardDebt;     // Reward debt. See explanation below.
         //
-        // We do some fancy math here. Basically, any point in time, the amount of ARTes
+        // We do some fancy math here. Basically, any point in time, the amount of VKEYs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accArtPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accVkeyPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accArtPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accVkeyPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -41,20 +41,22 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // Info of each pool.
     struct PoolInfo {
         IERC20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. ARTes to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that ARTes distribution occurs.
-        uint256 accArtPerShare;   // Accumulated ARTes per share, times 1e18. See below.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. VKEYs to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that VKEYs distribution occurs.
+        uint256 accVkeyPerShare;   // Accumulated VKEYs per share, times 1e18. See below.
         uint16 depositFeeBP;      // Deposit fee in basis points
     }
 
-    // The ART TOKEN!
-    ArtToken public art;
+    // The VKEY TOKEN!
+    VkeyToken public vkey;
     address public devAddress;
     address public feeAddress;
     address public vaultAddress;
+    address public gov;
 
-    // ART tokens created per block.
-    uint256 public artPerBlock = 1 ether;
+    // VKEY tokens created per block.
+    uint256 public vkeyPerBlock = 1 ether;
+    uint256 private tokenSupply = 35000000 ether;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -62,10 +64,11 @@ contract MasterChef is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when ART mining starts.
+    // The block number when VKEY mining starts.
     uint256 public startBlock;
+    uint256 public endBlock;
 
-    // Art referral contract address.
+    // Vkey referral contract address.
     IReferral public referral;
     // Referral commission rate in basis points.
     uint16 public referralCommissionRate = 200;
@@ -79,22 +82,29 @@ contract MasterChef is Ownable, ReentrancyGuard {
     event SetDevAddress(address indexed user, address indexed newAddress);
     event SetVaultAddress(address indexed user, address indexed newAddress);
     event SetReferralAddress(address indexed user, IReferral indexed newAddress);
-    event UpdateEmissionRate(address indexed user, uint256 artPerBlock);
+    event UpdateEmissionRate(address indexed user, uint256 vkeyPerBlock);
     event ReferralCommissionPaid(address indexed user, address indexed referrer, uint256 commissionAmount);
 
     constructor(
-        ArtToken _art,
+        VkeyToken _vkey,
         uint256 _startBlock,
         address _devAddress,
         address _feeAddress,
-        address _vaultAddress
+        address _vaultAddress,
+        address _gov
     ) public {
-        art = _art;
+        vkey = _vkey;
         startBlock = _startBlock;
 
         devAddress = _devAddress;
         feeAddress = _feeAddress;
         vaultAddress = _vaultAddress;
+        gov = _gov;
+
+        // calc endBlock
+        endBlock = tokenSupply.sub(vkey.totalSupply())
+            .div(vkeyPerBlock)
+            .mul(10000).div(10000 + 1000 + referralCommissionRate);  // dev fund + referral commission
     }
 
     function poolLength() external view returns (uint256) {
@@ -117,12 +127,12 @@ contract MasterChef is Ownable, ReentrancyGuard {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accArtPerShare: 0,
+            accVkeyPerShare: 0,
             depositFeeBP: _depositFeeBP
         }));
     }
 
-    // Update the given pool's ART allocation point and deposit fee. Can only be called by the owner.
+    // Update the given pool's VKEY allocation point and deposit fee. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP) external onlyOwner {
         require(_depositFeeBP <= 10000, "set: invalid deposit fee basis points");
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
@@ -131,22 +141,25 @@ contract MasterChef is Ownable, ReentrancyGuard {
     }
 
     // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public pure returns (uint256) {
+    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+        if(_from > endBlock) return 0;
+        if(_to > endBlock) return endBlock.sub(_from);
+
         return _to.sub(_from);
     }
 
-    // View function to see pending ARTes on frontend.
-    function pendingArt(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending VKEYs on frontend.
+    function pendingVkey(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accArtPerShare = pool.accArtPerShare;
+        uint256 accVkeyPerShare = pool.accVkeyPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 artReward = multiplier.mul(artPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accArtPerShare = accArtPerShare.add(artReward.mul(1e18).div(lpSupply));
+            uint256 vkeyReward = multiplier.mul(vkeyPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accVkeyPerShare = accVkeyPerShare.add(vkeyReward.mul(1e18).div(lpSupply));
         }
-        return user.amount.mul(accArtPerShare).div(1e18).sub(user.rewardDebt);
+        return user.amount.mul(accVkeyPerShare).div(1e18).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -169,14 +182,14 @@ contract MasterChef is Ownable, ReentrancyGuard {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 artReward = multiplier.mul(artPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        art.mint(devAddress, artReward.div(10));
-        art.mint(address(this), artReward);
-        pool.accArtPerShare = pool.accArtPerShare.add(artReward.mul(1e18).div(lpSupply));
+        uint256 vkeyReward = multiplier.mul(vkeyPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        vkey.mint(devAddress, vkeyReward.div(10));
+        vkey.mint(address(this), vkeyReward);
+        pool.accVkeyPerShare = pool.accVkeyPerShare.add(vkeyReward.mul(1e18).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for ART allocation.
+    // Deposit LP tokens to MasterChef for VKEY allocation.
     function deposit(uint256 _pid, uint256 _amount, address _referrer) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -185,9 +198,9 @@ contract MasterChef is Ownable, ReentrancyGuard {
             referral.recordReferral(msg.sender, _referrer);
         }
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accArtPerShare).div(1e18).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accVkeyPerShare).div(1e18).sub(user.rewardDebt);
             if (pending > 0) {
-                safeArtTransfer(msg.sender, pending);
+                safeVkeyTransfer(msg.sender, pending);
                 payReferralCommission(msg.sender, pending);
             }
         }
@@ -202,7 +215,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 user.amount = user.amount.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accArtPerShare).div(1e18);
+        user.rewardDebt = user.amount.mul(pool.accVkeyPerShare).div(1e18);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -212,16 +225,16 @@ contract MasterChef is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accArtPerShare).div(1e18).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accVkeyPerShare).div(1e18).sub(user.rewardDebt);
         if (pending > 0) {
-            safeArtTransfer(msg.sender, pending);
+            safeVkeyTransfer(msg.sender, pending);
             payReferralCommission(msg.sender, pending);
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accArtPerShare).div(1e18);
+        user.rewardDebt = user.amount.mul(pool.accVkeyPerShare).div(1e18);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -236,16 +249,16 @@ contract MasterChef is Ownable, ReentrancyGuard {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // Safe art transfer function, just in case if rounding error causes pool to not have enough ART.
-    function safeArtTransfer(address _to, uint256 _amount) internal {
-        uint256 artBal = art.balanceOf(address(this));
+    // Safe vkey transfer function, just in case if rounding error causes pool to not have enough VKEY.
+    function safeVkeyTransfer(address _to, uint256 _amount) internal {
+        uint256 vkeyBal = vkey.balanceOf(address(this));
         bool transferSuccess = false;
-        if (_amount > artBal) {
-            transferSuccess = art.transfer(_to, artBal);
+        if (_amount > vkeyBal) {
+            transferSuccess = vkey.transfer(_to, vkeyBal);
         } else {
-            transferSuccess = art.transfer(_to, _amount);
+            transferSuccess = vkey.transfer(_to, _amount);
         }
-        require(transferSuccess, "safeArtTransfer: Transfer failed");
+        require(transferSuccess, "safeVkeyTransfer: Transfer failed");
     }
 
     // Update dev address by the previous dev.
@@ -264,10 +277,10 @@ contract MasterChef is Ownable, ReentrancyGuard {
         emit SetVaultAddress(msg.sender, _vaultAddress);
     }
     
-    function updateEmissionRate(uint256 _artPerBlock) external onlyOwner {
+    function updateEmissionRate(uint256 _vkeyPerBlock) external onlyOwner {
         massUpdatePools();
-        artPerBlock = _artPerBlock;
-        emit UpdateEmissionRate(msg.sender, _artPerBlock);
+        vkeyPerBlock = _vkeyPerBlock;
+        emit UpdateEmissionRate(msg.sender, _vkeyPerBlock);
     }
 
     // Update the referral contract address by the owner
@@ -280,6 +293,11 @@ contract MasterChef is Ownable, ReentrancyGuard {
     function setReferralCommissionRate(uint16 _referralCommissionRate) external onlyOwner {
         require(_referralCommissionRate <= MAXIMUM_REFERRAL_COMMISSION_RATE, "setReferralCommissionRate: invalid referral commission rate basis points");
         referralCommissionRate = _referralCommissionRate;
+        
+        // calc endBlock
+        endBlock = tokenSupply.sub(vkey.totalSupply())
+            .div(vkeyPerBlock)
+            .mul(10000).div(10000 + 1000 + referralCommissionRate);  // dev fund + referral commission
     }
 
     // Pay referral commission to the referrer who referred this user.
@@ -289,7 +307,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
             uint256 commissionAmount = _pending.mul(referralCommissionRate).div(10000);
 
             if (referrer != address(0) && commissionAmount > 0) {
-                art.mint(referrer, commissionAmount);
+                vkey.mint(referrer, commissionAmount);
                 emit ReferralCommissionPaid(_user, referrer, commissionAmount);
             }
         }
@@ -299,5 +317,22 @@ contract MasterChef is Ownable, ReentrancyGuard {
     function updateStartBlock(uint256 _startBlock) external onlyOwner {
 	    require(startBlock > block.number, "Farm already started");
         startBlock = _startBlock;
+
+        // calc endBlock
+        endBlock = tokenSupply.sub(vkey.totalSupply())
+            .div(vkeyPerBlock)
+            .mul(10000).div(10000 + 1000 + referralCommissionRate);  // dev fund + referral commission
+    }
+
+    function setGov(address _gov) external {
+        require(msg.sender == gov, "UnAuthorized");
+        gov = _gov;
+    }
+
+    function finalize() external {
+        require(msg.sender == gov, "UnAuthorized");
+        require(endBlock > block.number, "Farm not ended");
+
+        vkey.mint(devAddress, tokenSupply.sub(vkey.totalSupply()));
     }
 }

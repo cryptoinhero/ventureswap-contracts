@@ -5,11 +5,23 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract ArtToken is ERC20("Art", "ART"), Ownable {
-    
+contract VkeyToken is ERC20("Vkey", "VKEY"), Ownable {
+    uint256 private totalSupplyLimit;
+    constructor (uint256 _totalSupply) public {
+        totalSupplyLimit = _totalSupply;
+    }
+
     function mint(address _to, uint256 _amount) public onlyOwner {
-        _mint(_to, _amount);
-        _moveDelegates(address(0), _delegates[_to], _amount);
+        uint256 _totalSupply = totalSupply();
+        require(_totalSupply <= totalSupplyLimit, "Exceed total supply");
+
+        uint256 amount = _amount;
+        if(_totalSupply.add(_amount) > totalSupplyLimit) {
+            amount = totalSupplyLimit.sub(_totalSupply);
+        }
+
+        _mint(_to, amount);
+        _moveDelegates(address(0), _delegates[_to], amount);
     }
 
     // Copied and modified from YAM code:
